@@ -2,14 +2,9 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
-from django.db import IntegrityError
-
-# Models
-from django.contrib.auth.models import User
-from users.models import Profile
 
 # Forms
-from users.forms import ProfileForm
+from users.forms import ProfileForm, SignUpForm
 
 @login_required
 def update_profile(request):
@@ -53,31 +48,18 @@ def login_view(request):
 
 def signup(request):
     if request.method == "POST":
-        username = request.POST['username']
-        pwd = request.POST['password']
-        pwd_confirm = request.POST['password_confirm']
-
-        if pwd != pwd_confirm:
-            return render(request,'users/signup.html',{"error":"Passwords must be equals!"})
-        
-        try:
-            user = User.objects.create_user(username=username,password=pwd)
-        except IntegrityError:
-            return render(request,'users/signup.html',{'error':'Username is already in use'})
-        
-
-        user.first_name = request.POST['firstname']
-        user.last_name = request.POST['lastname']
-        user.email = request.POST['email']
-        user.save()
-
-        profile = Profile(user=user)
-        profile.save()
-
-        return redirect('login')
-
-        
-    return render(request, 'users/signup.html')
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('login')
+    else:
+        form = SignUpForm()
+    
+    return render(
+        request=request,
+        template_name='users/signup.html',
+        context={'form':form},
+        )
 
 
 @login_required
