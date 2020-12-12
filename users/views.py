@@ -3,15 +3,16 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
-from django.urls import reverse
-from django.views.generic import DetailView
+from django.urls import reverse, reverse_lazy
+from django.views.generic import DetailView, FormView, UpdateView
 
 # Models
 from django.contrib.auth.models import User
 from posts.models import Post
+from users.models import Profile
 
 # Forms
-from users.forms import ProfileForm, SignUpForm
+from users.forms import SignUpForm
 
 class UserDetailView(LoginRequiredMixin, DetailView):
 
@@ -28,32 +29,54 @@ class UserDetailView(LoginRequiredMixin, DetailView):
         context['posts'] = Post.objects.filter(user=user).order_by('-created')
 
 
-@login_required
-def update_profile(request):
+class SignUpView(FormView):
+    template_name = "users/signup.html"
+    form_class = SignUpForm
+    success_url = reverse_lazy("users:login")
 
-    profile = request.user.profile
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
 
-    if request.method == 'POST':
-        form = ProfileForm(request.POST, request.FILES)
-        if form.is_valid():
-            data = form.cleaned_data
+class UpdateProfileView(LoginRequiredMixin, UpdateView):
+    template_name = "users/update_profile.html"
+    model = Profile
+    fields = ['website', 'biography', 'phone_number', 'picture']
 
-            profile.website = data["website"]
-            profile.phone_number = data["phone_number"]
-            profile.biography = data["biography"]
-            profile.picture = data["picture"]
+    def get_object(self):
+        return self.request.user.profile
 
-            profile.save()
+    def get_success_url(self):
+        """ return to user's profile """
+        username = self.object.user.username
+        return reverse('users:detail', kwargs={'username':username})
+        
+# @login_required
+# def update_profile(request):
 
-            url = reverse('users:detail', kwargs={'username': request.user.username})
-            return redirect(url)
+#     profile = request.user.profile
 
-    else:
-        form = ProfileForm()
+#     if request.method == 'POST':
+#         form = ProfileForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             data = form.cleaned_data
+
+#             profile.website = data["website"]
+#             profile.phone_number = data["phone_number"]
+#             profile.biography = data["biography"]
+#             profile.picture = data["picture"]
+
+#             profile.save()
+
+#             url = reverse('users:detail', kwargs={'username': request.user.username})
+#             return redirect(url)
+
+#     else:
+#         form = ProfileForm()
     
-    return render(request,"users/update_profile.html",{'profile':profile,
-                                                        'user':request.user,
-                                                        'form':form})
+#     return render(request,"users/update_profile.html",{'profile':profile,
+#                                                         'user':request.user,
+#                                                         'form':form})
 
 
 def login_view(request):
@@ -69,24 +92,23 @@ def login_view(request):
     return render(request,'users/login.html')
 
 
-def signup(request):
-    if request.method == "POST":
-        form = SignUpForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('users:login')
-    else:
-        form = SignUpForm()
+# def signup(request):
+#     if request.method == "POST":
+#         form = SignUpForm(request.POST)
+#         if form.is_valid():
+#             form.save()
+#             return redirect('users:login')
+#     else:
+#         form = SignUpForm()
     
-    return render(
-        request=request,
-        template_name='users/signup.html',
-        context={'form':form},
-        )
+#     return render(
+#         request=request,
+#         template_name='users/signup.html',
+#         context={'form':form},
+#         )
 
 
 @login_required
 def logout_view(request):
-    import pdb; pdb.set_trace()
     logout(request)
-    return redirect('users:login')
+    return redirect('users:login') 
