@@ -1,8 +1,6 @@
 # Django
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import render, redirect
+from django.contrib.auth import views as auth_views
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, FormView, UpdateView
 
@@ -13,6 +11,7 @@ from users.models import Profile
 
 # Forms
 from users.forms import SignUpForm
+
 
 class UserDetailView(LoginRequiredMixin, DetailView):
 
@@ -38,6 +37,7 @@ class SignUpView(FormView):
         form.save()
         return super().form_valid(form)
 
+
 class UpdateProfileView(LoginRequiredMixin, UpdateView):
     template_name = "users/update_profile.html"
     model = Profile
@@ -50,7 +50,18 @@ class UpdateProfileView(LoginRequiredMixin, UpdateView):
         """ return to user's profile """
         username = self.object.user.username
         return reverse('users:detail', kwargs={'username':username})
+
+
+class LoginView(auth_views.LoginView):
+    """ Login view. """
+    template_name = "users/login.html"
+
+
+class LogoutView(LoginRequiredMixin,auth_views.LogoutView):
+    """ Logout view """
+    template_name = "users/logged_out.html" # esto lo necesita, pero en realidad no hace nada
         
+
 # @login_required
 # def update_profile(request):
 
@@ -78,18 +89,17 @@ class UpdateProfileView(LoginRequiredMixin, UpdateView):
 #                                                         'user':request.user,
 #                                                         'form':form})
 
-
-def login_view(request):
-    if request.method == "POST":
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(request, username=username,password=password)
-        if user:
-            login(request,user)
-            return redirect("posts:feed")
-        else:
-            return render(request,'users/login.html',{'error':'Invalid username and password'})
-    return render(request,'users/login.html')
+# def login_view(request):
+#     if request.method == "POST":
+#         username = request.POST['username']
+#         password = request.POST['password']
+#         user = authenticate(request, username=username,password=password)
+#         if user:
+#             login(request,user)
+#             return redirect("posts:feed")
+#         else:
+#             return render(request,'users/login.html',{'error':'Invalid username and password'})
+#     return render(request,'users/login.html')
 
 
 # def signup(request):
@@ -108,7 +118,8 @@ def login_view(request):
 #         )
 
 
-@login_required
-def logout_view(request):
-    logout(request)
-    return redirect('users:login') 
+
+# @login_required
+# def logout_view(request):
+#     logout(request)
+#     return redirect('users:login') 
